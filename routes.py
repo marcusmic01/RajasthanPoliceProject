@@ -11,7 +11,6 @@ router = APIRouter()
 @router.post("/detection/")
 def create_detection(detection: Detection):
     detection_data = jsonable_encoder(detection)
-    # Convert time objects to strings in the format `HH:MM:SS`
     detection_data['first_timestamp'] = detection.first_timestamp.strftime('%H:%M:%S')
     detection_data['last_timestamp'] = detection.last_timestamp.strftime('%H:%M:%S')
     detection_data['time'] = detection.time.isoformat()
@@ -20,44 +19,69 @@ def create_detection(detection: Detection):
     return {"inserted_id": str(result.inserted_id)}
 
 
-# @router.get("/detection/", response_model=List[Detection])
-# def search_detections(query: DetectionQuery = Depends()):
-#     query_dict = {k: v for k, v in query.dict().items() if v is not None}
-#     results = users_collection.find(query_dict)
-#     return list(results)
+# @router.post("/search_detections/", response_model=List[Detection])
+# def search_detections(query: DetectionQuery):
+#     mongo_query = {}
 
-@router.get("/detection/", response_model=List[Detection])
-def search_detections(query: DetectionQuery = Depends()):
-    query_dict = {k: v for k, v in query.dict().items() if v is not None}
+#     if query.cam_id:
+#         mongo_query['cam_id'] = query.cam_id
+#     if query.detection:
+#         mongo_query['detection'] = query.detection
+#     if query.name:
+#         mongo_query['name'] = query.name
+#     if query.color:
+#         mongo_query['color'] = query.color
+#     if query.license_num:
+#         mongo_query['license_num'] = query.license_num
+#     if query.first_timestamp:
+#         mongo_query['first_timestamp'] = {"$gte": query.first_timestamp.strftime('%H:%M:%S')}
+#     if query.last_timestamp:
+#         mongo_query['last_timestamp'] = {"$lte": query.last_timestamp.strftime('%H:%M:%S')}
+#     if query.time:
+#         mongo_query['time'] = query.time.isoformat()
+
+#     results = list(users_collection.find(mongo_query))
+#     if not results:
+#         raise HTTPException(status_code=404, detail="No detections found.")
+
+#     for result in results:
+#         result['id'] = str(result['_id'])
+#         result['first_timestamp'] = result['first_timestamp']
+#         result['last_timestamp'] = result['last_timestamp']
+#         result['time'] = result['time']
+
+#     return results
+
+@router.post("/search_detections/", response_model=List[Detection])
+def search_detections(query: DetectionQuery):
+    print(f"Received query: {query.first_timestamp}, {query.last_timestamp}, {query.time}")
     mongo_query = {}
 
-    if 'first_timestamp' in query_dict and 'last_timestamp' in query_dict:
-        mongo_query['first_timestamp'] = {"$gte": query.first_timestamp.strftime('%H:%M:%S')}
-        mongo_query['last_timestamp'] = {"$lte": query.last_timestamp.strftime('%H:%M:%S')}
-    else:
-        if 'first_timestamp' in query_dict:
-            mongo_query['first_timestamp'] = {"$gte": query.first_timestamp.strftime('%H:%M:%S')}
-        if 'last_timestamp' in query_dict:
-            mongo_query['last_timestamp'] = {"$lte": query.last_timestamp.strftime('%H:%M:%S')}
-
-    if 'cam_id' in query_dict:
+    if query.cam_id:
         mongo_query['cam_id'] = query.cam_id
-    if 'detection' in query_dict:
+    if query.detection:
         mongo_query['detection'] = query.detection
-    if 'name' in query_dict:
+    if query.name:
         mongo_query['name'] = query.name
-    if 'color' in query_dict:
+    if query.color:
         mongo_query['color'] = query.color
-    if 'license_num' in query_dict:
+    if query.license_num:
         mongo_query['license_num'] = query.license_num
-    if 'time' in query_dict:
+    if query.first_timestamp:
+        mongo_query['first_timestamp'] = {"$gte": query.first_timestamp.strftime('%H:%M:%S')}
+    if query.last_timestamp:
+        mongo_query['last_timestamp'] = {"$lte": query.last_timestamp.strftime('%H:%M:%S')}
+    if query.time:
         mongo_query['time'] = query.time.isoformat()
 
     results = list(users_collection.find(mongo_query))
+    if not results:
+        raise HTTPException(status_code=404, detail="No detections found.")
 
     for result in results:
-        result['first_timestamp'] = datetime.strptime(result['first_timestamp'], '%H:%M:%S').time()
-        result['last_timestamp'] = datetime.strptime(result['last_timestamp'], '%H:%M:%S').time()
-        result['time'] = datetime.fromisoformat(result['time']).date()
+        result['id'] = str(result['_id'])
+        result['first_timestamp'] = result['first_timestamp']
+        result['last_timestamp'] = result['last_timestamp']
+        result['time'] = result['time']
 
     return results
